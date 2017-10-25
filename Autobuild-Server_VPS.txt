@@ -1,0 +1,34 @@
+#!/bin/sh
+yum -y install expect tigervnc tigervnc-server
+wget https://download.Fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm 
+rpm -ivh epel-release-6-8.noarch.rpm 
+yum search xfce 
+yum groupinfo xfce 
+yum groupinstall xfce chinese-support -y
+yum -y install firefox
+wget ftp://192.99.11.204/ebesucher/install_flash_player_11_linux.x86_64.tar.gz
+tar zxvf install_flash_player_11_linux.x86_64.tar.gz
+mkdir -p ~/.mozilla/plugins/
+cp libflashplayer.so ~/.mozilla/plugins/
+echo 'VNCSERVERS="1:root"
+VNCSERVERARGS[1]="-geometry 1024x1024 "' >> /etc/sysconfig/vncservers
+echo '#! /usr/bin/expect
+spawn sudo vncserver
+expect "Password:"
+send "ruyo.net\r"
+expect "Verify:"
+send "ruyo.net\r"
+expect off' > setpwd_centos6.sh
+chmod 777 setpwd_centos6.sh
+./setpwd_centos6.sh
+dbus-uuidgen > /var/lib/dbus/machine-id
+echo '#!/bin/bash
+while [ 1 ]
+do
+        echo "Stop Firefox"
+        pgrep firefox && killall -9 firefox
+        sleep 5
+        firefox --display=localhost:1.0 --new-tab http://www.ebesucher.com/surfbar/malaohu & >/dev/null 2>&1
+        echo "Restart Firefox"
+		sleep 300
+done' > autorestart.sh

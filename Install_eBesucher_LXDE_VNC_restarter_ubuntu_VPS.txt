@@ -1,0 +1,164 @@
+eBesucher hang up money tutorial (LXDE + VNC + restarter)
+-----------------------------------------------------------------
+#Hang up conditions: VPS memory 512M or more; A European IP VPS
+#(1)LXDE desktop installation method
+ apt-get update
+#Install the LXDE environment 
+ apt-get install xorg lxde-core tightvncserver
+#Start VNC / enter password 
+ tightvncserver :1
+#first pause vnc, you can use the following code:
+ tightvncserver -kill :1
+#Edit the xstartup file:
+ nano ~/.vnc/xstartup
+#Then add the following script code at the end of the file:
+(Write under)
+ lxterminal & 
+ /usr/bin/lxsession -s LXDE &
+ 
+ (End)
+#Restart VNC
+ tightvncserver :1
+#(2)Install the browser and Flash
+#It is recommended to install two browsers to switch at any time
+#Install Firefox:
+ apt-get install firefox -y
+#Install chrome (optional)
+ wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+ dpkg -i google-chrome-stable_current_amd64.deb
+ sudo apt-get -f install -y
+ dpkg -i google-chrome-stable_current_amd64.deb
+#run Google Chrome as root
+#Edit the /usr/bin/google-chrome and add the "--no-sandbox" or "–user-data-dir" at the end of the last line
+ nano /usr/bin/google-chrome
+#Change like this
+ exec -a "$0" "$HERE/chrome" "$@" --no-sandbox
+ #or
+ exec -a "$0" "$HERE/chrome" "$@" --user-data-dir
+#Install Flash
+#Method:
+ wget https://fpdownload.adobe.com/get/flashplayer/pdc/24.0.0.221/flash_player_npapi_linux.x86_64.tar.gz
+ tar -zxf flash_player_*_linux.x86_64.tar.gz
+ cp libflashplayer.so /usr/lib/mozilla/plugins/
+ cp -r usr /usr
+#Latest download address https://get.adobe.com/flashplayer/otherversions/
+#(3)Install Java (optional)
+#Debian:
+ echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu xenial main" | tee /etc/apt/sources.list.d/webupd8team-java.list
+ echo "deb-src http://ppa.launchpad.net/webupd8team/java/ubuntu xenial main" | tee -a /etc/apt/sources.list.d/webupd8team-java.list
+ apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys EEA14886
+ apt-get update
+ apt-get install oracle-java8-installer
+#Ubuntu:
+ apt-get install python-software-properties
+ add-apt-repository ppa:webupd8team/java
+ apt-get update
+ apt-get --allow-unauthenticated install oracle-java8-installer -y
+#select Java version (Optional)
+ update-alternatives --config java
+#Open and edit /etc/profile file
+#Put following line in last line of the file, copy jre path from previous command:
+ export JAVA_HOME="/usr/lib/jvm/java-8-oracle/jre/bin/java"
+#Or copy the path from your preferred installation and then open /etc/environment
+# nano /etc/environment
+#At the end of this file, add the following line
+# JAVA_HOME="/usr/lib/jvm/java-8-oracle/jre/bin/java"
+#Reload this file, so that changes can get applied effectively
+ source /etc/profile
+
+#(4)Install the restarter (optional)
+#The restarter is an on-hook helper provided by ebesucher that automatically restarts the browser 
+#when the browser has an error (surfing the window, stuck, crashing, etc.), which greatly facilitates us to hang up and avoid manual maintenance. 
+#Download restarter
+ wget https://www.ebesucher.com/data/restarter-setup-others.v1.2.03.zip
+ apt-get --allow-unauthenticated install unzip
+ unzip restarter-setup-others.v1.2.03.zip
+#Install java and restarter, through the vnc viewer into the desktop, start the terminal interface root terminal enter the following command:
+ cd ~/
+ java -jar restarter.jar
+#(5)Set the restarter (optional)
+#Start the restarter after the need to set the restarter
+#Enter username and CODE can found in http://www.ebesucher.com/restarter.html 
+#Please note: In order to run the restarter, you need the internal access code of the software ("Enter the generated password"). 
+#On the first run of the software, you can just copy and paste the following code:
+ XnR27ozqOc7S 
+#Choose language language 
+ Has three options, here to see your address: https://www.ebesucher.com/punkteverdienen.html
+#Select the browser
+#chrome need to manually set the path /opt/google/chrome/chrome --no-sandbox
+#Click on the start surfbar to start the firefox to start surfing
+#(5)Start surfing
+#Install the Firefox plugin and set up your username
+ https://www.ebesucher.com/data/firefoxaddon/latest.xpi
+#Check if flash is installed successfully
+#Click on the plug and start hang up
+#Choose one of the most integrated areas (need to manually enter the address, the default click plugin is. Com)
+ http://www.ebesucher.de/surfbar/nnquangminh
+ http://www.ebesucher.com/surfbar/nnquangminh
+ http://www.ebesucher.ru/surfbar/nnquangminh
+ http://www.ebesucher.es/surfbar/nnquangminh
+ http://www.ebesucher.fr/surfbar/nnquangminh
+#(6)optimization
+#The browser does not save history this is important because you've been surfing if you save history, which will result in a lot of log files. 
+#Into the firefox preferences-privacy-history, set to never remember history 
+#Make scripts, restart the browser and restarter regularly
+#Firefox:
+ nano ~/Desktop/restart_ff.sh
+(Write under)
+
+#!/bin/sh
+export DISPLAY=localhost:1.0
+cd ~/
+rm -rf ~/.vnc/*.log /tmp/plugtmp* > /dev/null 2>&1
+killall firefox > /dev/null 2>&1
+killall java > /dev/null 2>&1
+/usr/bin/firefox --new-tab http://www.ebesucher.com/surfbar/nnquangminh > /dev/null 2>&1 
+/usr/bin/java -jar ~/restarter.jar > /dev/null 2>&1
+
+(End)
+#Where, http://www.ebesucher.com/surfbar/username in the username to your user name
+#to the script to add executable permissions 
+ chmod a+x ~/Desktop/restart_ff.sh
+#Edit crontab
+ nano /etc/crontab
+#or crontab -e
+#setup once every hour the script 
+ 0 * * * * root ~/Desktop/restart_ff.sh
+ 
+#*/3 * * * * [ -z "`ps -ef | grep java | grep -v grep`" ] && nohup bash /root/restart > /dev/null 2>&1 &
+#The command will be 3 minutes to detect whether the process called java process, if not run the restart script. 
+#So that the machine can automatically restart after the accident, if the VPS is running unstable or suspended animation, etc., 
+#can be synchronized with the regular restart to achieve the purpose of automation. 
+#Note that the test conditions are only applicable to you only run a Restarter this instance, if there are other JAVA instance, you can not determine whether the Restarter run!
+#restart cron
+ service cron restart
+
+#Chrome:
+ nano ~/Desktop/restart_ch.sh
+(Write under)
+
+#!/bin/sh
+export DISPLAY=localhost:1.0
+cd ~/
+rm -rf ~/.vnc/*.log /tmp/plugtmp* > /dev/null 2>&1
+killall java > /dev/null 2>&1
+killall chrome > /dev/null 2>&1
+/opt/google/chrome/chrome --new-tab http://www.ebesucher.com/surfbar/nnquangminh --no-sandbox  > /dev/null 2>&1
+/usr/bin/java -jar ~/restarter.jar > /dev/null 2>&1
+
+(End)
+#Where, http://www.ebesucher.com/surfbar/username in the username to your user name
+#to the script to add executable permissions 
+ chmod a+x ~/Desktop/restart_ch.sh
+#edit cron
+ nano /etc/crontab
+#setup once every hour the script
+ 0 * * * * root ~/Desktop/restart_ch.sh
+#restart cron
+ service cron restart
+
+#Use cpulimit to limit the use of firefox to prevent stuck
+ apt-get install cpulimit
+ #limit firefox use 50% cpu utilization 
+ cpulimit -e firefox -l 50 > /dev/null 2>&1 &
+

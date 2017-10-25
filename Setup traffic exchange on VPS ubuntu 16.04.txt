@@ -1,0 +1,255 @@
+#Install some traffic exchange script on VPS ubuntu 16.04.
+#- hitleap.com
+#- kilohits.com
+#- websyndic.com (Browser)
+#- otohits.net (Need memory more than 1GB)
+#Requirement
+#- SSH client (port forwarding need) or Putty
+#- VNC client
+
+##PREPARE VNC Server with multiple users
+ sudo apt update && sudo apt upgrade -y && sudo apt install gnome-core xfce4 xfce4-goodies tightvncserver autocutsel -y
+#then add users
+ vncserver
+ vncserver -kill :1
+ mv ~/.vnc/xstartup ~/.vnc/xstartup.backup
+ nano ~/.vnc/xstartup
+#and add
+(Write under)
+#!/bin/bash
+[ -r $HOME/.Xresources ] && xrdb $HOME/.Xresources
+autocutsel -fork
+startxfce4 &
+
+(End)
+#make it executable:  
+ sudo chmod +x ~/.vnc/xstartup
+ vncserver :1
+
+#Add another users
+ sudo adduser honeycomb01
+ sudo usermod -aG sudo honeycomb01
+ su honeycomb01
+#install necessary stuff for desktop
+ sudo apt install gnome-core xfce4 xfce4-goodies tightvncserver autocutsel -y
+ 
+ vncserver :2
+ vncserver -kill :2
+ mv ~/.vnc/xstartup ~/.vnc/xstartup.backup
+ nano ~/.vnc/xstartup
+#and add
+(Write under)
+#!/bin/bash
+[ -r $HOME/.Xresources ] && xrdb $HOME/.Xresources
+autocutsel -fork
+startxfce4 &
+
+(End)
+#make it executable:  
+ sudo chmod +x ~/.vnc/xstartup
+ vncserver :2
+
+#Add another users, creat honeycomb02 user, similary when create honeycomb01 step above
+
+#So, switch to root (it is just more easier) and then create vncserver folder and create file as vncservers.conf:
+ sudo su -
+ mkdir -p /etc/vncserver
+ nano /etc/vncserver/vncservers.conf
+#Inside put the following massive:
+ VNCSERVERS="1:root 2:honeycomb01 3:honeycomb02"
+ VNCSERVERARGS[1]="-geometry 1024x768 -depth 24"
+ VNCSERVERARGS[2]="-geometry 1024x768 -depth 24"
+ VNCSERVERARGS[3]="-geometry 1024x768 -depth 24"
+#Create vnc service file
+ sudo nano /etc/init.d/vncserver
+(Write under)
+#!/bin/bash
+unset VNCSERVERARGS
+VNCSERVERS=""
+[ -f /etc/vncserver/vncservers.conf ] && . /etc/vncserver/vncservers.conf
+prog=$"VNC server"
+start() {
+        . /lib/lsb/init-functions
+        REQ_USER=$2
+        echo -n $"Starting $prog: "
+        ulimit -S -c 0 >/dev/null 2>&1
+        RETVAL=0
+        for display in ${VNCSERVERS}
+        do
+                export USER="${display##*:}"
+                if test -z "${REQ_USER}" -o "${REQ_USER}" == ${USER} ; then
+                        echo -n "${display} "
+                        unset BASH_ENV ENV
+                        DISP="${display%%:*}"
+                        export VNCUSERARGS="${VNCSERVERARGS[${DISP}]}"
+                        su ${USER} -c "cd ~${USER} && [ -f .vnc/passwd ] && vncserver :${DISP} ${VNCUSERARGS}"
+                fi
+        done
+}
+stop() {
+        . /lib/lsb/init-functions
+        REQ_USER=$2
+        echo -n $"Shutting down VNCServer: "
+        for display in ${VNCSERVERS}
+        do
+                export USER="${display##*:}"
+                if test -z "${REQ_USER}" -o "${REQ_USER}" == ${USER} ; then
+                        echo -n "${display} "
+                        unset BASH_ENV ENV
+                        export USER="${display##*:}"
+                        su ${USER} -c "vncserver -kill :${display%%:*}" >/dev/null 2>&1
+                fi
+        done
+        echo -e "\n"
+        echo "VNCServer Stopped"
+}
+case "$1" in
+start)
+start $@
+;;
+stop)
+stop $@
+;;
+restart|reload)
+stop $@
+sleep 3
+start $@
+;;
+condrestart)
+if [ -f /var/lock/subsys/vncserver ]; then
+stop $@
+sleep 3
+start $@
+fi
+;;
+status)
+status Xvnc
+;;
+*)
+echo $"Usage: $0 {start|stop|restart|condrestart|status}"
+exit 1
+esac
+
+(End)
+
+#Make the script executable, and add it to the startup scripts:
+ chmod +x /etc/init.d/vncserver
+ update-rc.d vncserver defaults 99
+#Start the service
+ systemctl daemon-reload
+ service vncserver stop
+ service vncserver start
+#/etc/init.d/vncserver start 
+#Check that its running
+ service vncserver status
+ cat ~/.vnc/*.pid
+ ps -ef | grep tightvnc
+ netstat -nlp | grep vnc
+
+#Go to Desktop
+ cd ~/Desktop
+#Download toolkit from github
+#git init
+ git clone https://github.com/nnquangminh/mmo.git
+#git remote add origin https://github.com/nnquangminh/mmo.git
+#git pull origin master
+#Extract file
+ tar Jxvf ~/Desktop/mmo/hit.tar.xz -C ~/Desktop/ && unzip ~/Desktop/mmo/kilohits.com-viewer-linux-x64.zip -d ~/Desktop/ && unzip ~/Desktop/mmo/OtohitsApp_3107_Linux.zip -d ~/Desktop/ && unzip ~/Desktop/mmo/crossover_13.1.3-1.zip -d ~/Desktop/mmo/ && unzip ~/Desktop/mmo/jingling.zip -d ~/Desktop/ && unzip ~/Desktop/mmo/proxy_scraper.zip -d ~/Desktop/proxy
+#or 
+#Hitleap
+# wget https://hitleap.com/viewer/download?platform=Linux -O hit.tar.xz && tar Jxvf hit.tar.xz
+##or for vultr vps
+# #wget https://www.dropbox.com/s/u1v0e91ofgh0mer/hit.tar.xz?dl=0 -O hit.tar.xz && tar Jxvf hit.tar.xz
+#Kilohits
+# wget https://www.dropbox.com/s/ytf7kwc1kiiclz9/kilohits.com-viewer-linux-x64.zip?dl=0 -O kilohits.com-viewer-linux-x64.zip && unzip kilohits.com-viewer-linux-x64.zip
+#Otohits (Need 1GB memory)
+# wget http://www.otohits.net/dl/OtohitsApp_3107_Linux.zip && unzip OtohitsApp_3107_Linux.zip
+
+#Libnss3 (kilohits) libcurl3 (Otohits) firefox(websyndic)
+ apt install libnss3 libcurl3 firefox -y
+  
+#Have the Hitleap, Kilohits, Otohits run when reboot:
+ mkdir $HOME/.config/autostart
+ sudo nano /usr/local/bin/autostart.sh
+(Write under)
+#!/bin/bash
+export DISPLAY=:1 && firefox | ~/Desktop/OtohitsApp/./OtohitsApp | ~/Desktop/kilohits.com-viewer-linux-x64/./kilohits.com-viewer | (~/Desktop/app/./HitLeap-Viewer && wait)
+
+(End)
+
+ chmod ugo+x /usr/local/bin/autostart.sh
+ sudo nano ~/.config/autostart/.desktop
+(Write under)
+[Desktop Entry]
+Type=Application
+Exec=/usr/local/bin/autostart.sh
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name=Startup Script
+
+(End)
+ 
+ chmod ugo+x ~/.config/autostart/.desktop
+
+#Next Install for Jingling & Traffic Spirit
+#Install wine
+#If have old wine version then run following command to remove
+#sudo apt-get remove --purge wine-devel*
+#sudo apt-get update
+#sudo apt-get autoclean
+#sudo apt-get clean
+#sudo apt-get autoremove
+ sudo dpkg --add-architecture i386
+ sudo apt-add-repository 'https://dl.winehq.org/wine-builds/ubuntu/'
+ wget https://dl.winehq.org/wine-builds/Release.key && sudo apt-key add Release.key
+ sudo apt update && sudo apt install winehq-stable -y
+#Install winetricks
+ sudo apt-get install winetricks -y
+#Install CrossOver
+ sudo apt-get -f install
+ sudo apt-get install gdebi -y
+ apt-get install python-gtk2 -y
+ sudo dpkg -i ~/Desktop/mmo/crossover_13.1.3-1/crossover_13.1.3-1.deb
+ sudo apt-get -f install
+ sudo dpkg -i ~/Desktop/mmo/crossover_13.1.3-1/crossover_13.1.3-1.deb
+#To Reconfigure: sudo dpkg-reconfigure ~/Desktop/mmo/crossover_13.1.3-1/crossover_13.1.3-1.deb
+#CRACK CrossOver by copy winewrapper.exe.so file to overwriting existing file in this dir: /opt/cxoffice/lib/wine
+ cp -rf ~/Desktop/mmo/crossover_13.1.3-1/crack/winewrapper.exe.so /opt/cxoffice/lib/wine/
+#Uninstall CrossOver: 
+#sudo /opt/cxoffice/bin/cxuninstall
+#cd ~/Desktop
+#git clone https://github.com/nnquangminh/mmotoolkit.git
+#Install copy/paste text from remote system
+#sudo apt-get install autocutsel
+#on Desktop screen, run terminal to create other prefix (e.g. : .wine32), set WINEARCH to win32 and run winecfg:
+ WINEPREFIX="$HOME/.wine32" WINEARCH=win32 winecfg
+ "Set Windows 7"
+#Then run winetricks using the last configurations:
+ WINEPREFIX="$HOME/.wine32" WINEARCH=win32 winetricks
+#Copy gacutil-net40.tar.bz2 file from mmtoolkit dir to /root/.cache/winetricks/dotnet40/ ->rerun
+#add ref link to jingling: 
+ https://www.tumblr.com/
+ https://plus.google.com/
+ https://www.facebook.com/
+#Task management
+ apt install htop
+#Generate a report of the network usage 
+ apt-get install vnstat
+#To monitor the bandwidth usage in realtime, use: vnstat -l -i eth0   
+#Disable vps from going to sleep 
+ sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+#Configure the network interface
+ sudo nano /etc/network/interfaces
+#Using nameservers 8.8.8.8 and 8.8.4.4 are provided by Google for public use -> dns-nameservers 8.8.8.8 8.8.4.4 ->  Type Ctrl+x to save changes.
+#Manually restart your network interface with the new settings
+ systemctl restart ifup@eth0
+ /etc/init.d/networking restart
+#Type the following commands to verify your new setup, enter:
+ ifconfig eth0
+ route -n
+ ping google.com
+ 
+ reboot
+ 
+#Done!

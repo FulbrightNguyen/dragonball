@@ -1,0 +1,106 @@
+#How to install a StorJ miner on Ubuntu via Command Line
+#----------------------------------------------------------------------------------------------------------------------------------------
+
+ sudo apt-get install -y build-essential curl git m4 ruby texinfo libbz2-dev libcurl4-openssl-dev libexpat-dev libncurses-dev zlib1g-dev
+ sudo curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
+ sudo apt-get install -y nodejs
+ sudo apt-get install -y build-essential
+ sudo wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.33.0/install.sh | bash
+
+ export NVM_DIR="/root/.nvm"
+ [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+ 
+ nvm install --lts
+ sudo apt-get update -y
+ sudo apt-get dist-upgrade -y
+ sudo apt-get install git python build-essential -y
+ sudo npm install --global storjshare-daemon
+
+#Start the StorJ daemon service with this command:
+ sudo storjshare daemon
+
+#Check which drives want to configure StorJ storage to sit on. Run this command:
+ df -h
+#Find out GB free on /. Let’s create storj folders on those drives for StorJ:
+ sudo mkdir /storj
+#Configure a StorJ share location with a command like this:
+ sudo storjshare-create --storj 0xAF99AaBBD2fF63C3cb6855E5BE87F243b7f88D09 --storage /storj --size 9GB
+#After running the storjshare-create command, it brings up an editor that lets you review and change any configuration details you need to. 
+#Just type this command to save and close the editor:
+ :wq
+#Make a copy of config file. The storjshare config file will be a path like this: 
+# /root/.config/storjshare/configs/d616431de0ee853f9eb5043040d07e3bb29d08cd.json
+#Lets add this configured StorJ path to the StorJshare daemon service with this command:
+ sudo storjshare start --config /root/.config/storjshare/configs/d616431de0ee853f9eb5043040d07e3bb29d08cd.json
+#Check StorJ service status
+ sudo storjshare status
+
+################################################################################################################################################# 
+#NTP synchronization for GNU+Linux systems
+#Having a system correctly synchronized with NTP is essential to ensure optimal functionality of the Storj Share nodes. 
+#If the synchronization is off by more than 500 milliseconds, the nodes will start to fail as it does not keep the same time as 
+#all the other nodes on the network. As most messages have a time-stamp, it is essential to have a good synchronization for optimal performance.
+
+#Open up a terminal and type in the following commands:
+
+ sudo apt-get install ntp ntpdate -y
+ sudo service ntp stop
+ sudo ntpdate -s time.nist.gov
+ sudo service ntp start
+ timedatectl status
+ timedatectl list-timezones
+ sudo timedatectl set-timezone <your timezone>
+ e.g. "sudo timedatectl set-timezone Europe/Rome"
+
+#Alternatively
+#Edit the ntp config file: 
+ sudo nano /etc/ntp.conf
+
+#You’ll find a lot of lines in that file, but the important ones are the server lines. 
+#You can get a list of server addresses at pool.ntp.org, find the preferred ones for your area, and then add them to the file. 
+#For example if you are in the Italy:
+ 
+server 0.it.pool.ntp.org
+server 1.it.pool.ntp.org
+server 2.it.pool.ntp.org
+server 3.it.pool.ntp.org
+
+#Then you’ll need to restart or start the NTPD service:
+ /etc/init.d/ntpd restart 
+# or 
+ ntpd restart
+ 
+#Have the Storjshare daemon run when reboot:
+ cd ~/.config/storjshare/
+ nano storjdaemon
+# Enter the contents:
+(Write under)
+ #!/bin/bash
+ sudo storjshare daemon && sudo storjshare start --config /root/.config/storjshare/configs/af10eb8e808f196e6d6c0bc050f2140b14969892.json 2>&1
+ 
+(End) 
+ 
+ chmod +x storjdaemon
+ crontab -e
+
+#At the bottom of crontab file add the line then save the file below: (Ctrl+w+v)
+(Write under)
+ @reboot ~/.config/storjshare/storjdaemon
+ 
+(End)
+ 
+#Configure the network interface
+ sudo nano /etc/network/interfaces
+#Using nameservers 8.8.8.8 and 8.8.4.4 are provided by Google for public use -> dns-nameservers 8.8.8.8 ->  Type Ctrl+x to save changes.
+#Manually restart your network interface with the new settings
+ systemctl restart ifup@eth0
+# or
+ /etc/init.d/networking restart
+#Type the following commands to verify your new setup, enter:
+ ifconfig eth0
+ route -n
+ ping google.com
+
+ reboot
+ 
+#Done!

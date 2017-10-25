@@ -1,0 +1,68 @@
+XMR Monero - Cpu mining on Ubuntu
+This tutorial describes a detailed procedure showing how to mine monero using the CPU of a computer running ubuntu linux with MINERGATE ACCOUNT
+Use the following comands to install the required packages: 
+
+(1) Required packages
+
+ apt-get update
+ apt-get install libcurl4-openssl-dev git
+ apt-get install build-essential
+ apt-get install autotools-dev autoconf
+ apt-get install libcurl3 libcurl4-gnutls-dev
+
+(2) Create a directory and download the monero miner:
+
+ cd ~/          (or # cd /root)
+ git clone https://github.com/wolf9466/cpuminer-multi
+ cd cpuminer-multi
+ 
+(3) Compile and install the cpuminer program:
+
+ ./autogen.sh
+ lscpu
+ grep -o aes /proc/cpuinfo
+ apt install cpuid
+ cpuid | grep -i aes | sort | uniq
+#With AES-NI:
+ CFLAGS="-march=native" ./configure
+#Without AES-NI:
+ CFLAGS="-march=native" ./configure --disable-aes-ni
+ make
+ make install
+ 
+(4) Have the miner run when you reboot:
+ cd ~/cpuminer-multi/
+ nano monero
+
+# Enter the contents:
+(Write under)
+#!/bin/bash
+~/cpuminer-multi/minerd -a cryptonight -o stratum+tcp://xmr.pool.minergate.com:45560 -u fulbrightnguyen@gmail.com -p Tomorrow_86! 2>&1
+
+or 
+(Write under)
+#!/bin/bash
+~/cpuminer-multi/minerd -a cryptonight -o stratum+tcp://mine.moneropool.com:3333 -u 44RkZJq13jieKADrEqQZ7haV2ZiEdvwoU9YaCW1K9pvATwi3UKdhbhABMbccpQHkL6H6f6MzW5L54aQVrKfK1t3gEnziKVD -p 'nasty mystery candy jogger shyness devoid hefty puzzled oars slid money anybody candy' 2>&1
+
+ chmod +x monero
+ crontab -e
+
+#At the bottom of crontab file add the line then save the file below: (Ctrl+w+v)
+(Write under)
+ @reboot ~/cpuminer-multi/monero
+
+(5)	Disable server from going to sleep:
+ apt install htop
+ apt install systemd (Ubuntu ver < 14.04, Ubuntu 16.04 doesn't need) 
+ sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+ #And this to re-enable it:
+ sudo systemctl unmask sleep.target suspend.target hibernate.target hybrid-sleep.target
+
+(6) Star mining XMR(monero) using the command below as an example:
+ minerd -a cryptonight -o stratum+tcp://xmr.pool.minergate.com:45560 -u fulbrightnguyen@gmail.com -p Tomorrow_86!
+ or
+ minerd -a cryptonight -o stratum+tcp://mine.moneropool.com:3333 -u 44RkZJq13jieKADrEqQZ7haV2ZiEdvwoU9YaCW1K9pvATwi3UKdhbhABMbccpQHkL6H6f6MzW5L54aQVrKfK1t3gEnziKVD -p 'nasty mystery candy jogger shyness devoid hefty puzzled oars slid money anybody candy'
+
+
+#CONCLUSION
+#This tutorial presented a step by step procedure teaching you how to start mining monero on a computer running linux.

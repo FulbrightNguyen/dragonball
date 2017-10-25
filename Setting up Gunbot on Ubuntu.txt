@@ -1,0 +1,64 @@
+The Complete Beginners Guide to Setting up Your Linux VPS and Running Gunbot
+----------------------------------------------------------------------------------------
+#Run the following commands to get your new VPS totally up-to-date:
+ sudo apt update
+ sudo apt upgrade
+#After you've done that, it's time to install a desktop and TightVNCServer. To do that, enter:
+ sudo apt install xfce4 xfce4-goodies tightvncserver
+#After that completes, time to install a few more quality-of-life programs
+ sudo apt install nano firefox x-tile htop
+#Once that's complete, it's time to setup a vncserver
+ vncserver
+ vncserver -kill :1
+#Time to edit the vncserver config!
+ mv ~/.vnc/xstartup ~/.vnc/xstartup.bak
+ nano ~/.vnc/xstartup
+#Enter the following in the new xstartup file:
+(Write under)
+#!/bin/bash
+xrdb $HOME/.Xresources
+autocutsel -fork
+startxfce4 &
+
+(End)
+ 
+ sudo chmod +x ~/.vnc/xstartup
+
+#Finally start vncserver again by entering:
+ vncserver -localhost :1
+#Now, let's install some Gunbot pre-requisites!
+#Download and setup the APT repository add the PGP key to the system’s APT keychain,
+ sudo apt-get install -y python-software-properties
+ curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
+#Running apt-get to Install Node.js
+ sudo apt-get install -y nodejs
+ sudo apt-get install build-essential -y
+ sudo apt-get update
+ nodejs --version
+#Finally, Update Your Version of npm
+ sudo apt-get install build-essential libssl-dev 
+ sudo npm install npm --global
+#Setting up Gunbot Version 3.2:
+ cd ~/
+ curl -qsL https://raw.githubusercontent.com/BeerK0in/generator-gunbot/master/install.sh | bash -- && exec bash
+#After the setup run:
+ gcd
+ ginit
+#Install x-tile
+ sudo apt-get install x-tile -y
+#write a script to run everything
+ nano start_all_pairs.sh
+(Write under)
+xfce4-terminal --title="Usage" -e htop
+sleep 6
+xfce4-terminal --title="BTC_ETH" -e "./gunthy-linuxx64 BTC_ETH poloniex"
+sleep 6
+xfce4-terminal --title="BTC_XRP" -e "./gunthy-linuxx64 BTC_XRP poloniex"
+sleep 6
+xfce4-terminal --title="BTC_LTC" -e "./gunthy-linuxx64 BTC_LTC poloniex"
+sleep 6
+xfce4-terminal --title="BTC_STR" -e "./gunthy-linuxx64 BTC_STR poloniex"
+sleep 6
+xfce4-terminal --title="BTC_EXP" -e "./gunthy-linuxx64 BTC_EXP poloniex"
+sleep 6
+x-tile

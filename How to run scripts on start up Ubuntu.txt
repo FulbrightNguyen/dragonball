@@ -1,0 +1,50 @@
+How to automatically execute shell script at startup boot on systemd Ubuntu
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+(1)Systemd service unit 
+#First, we need to create a systemd startup script eg: autostart.service and place it into /etc/systemd/system/ directory. 
+#Creating a autostart service File
+ sudo nano /etc/systemd/system/autostart.service
+
+#You can find the example of such systemd startup script below
+(Write under)
+[Unit]
+Description=Job that runs Hitleap, Kilohits, Otohits at startup script
+
+[Service]
+WorkingDirectory=/usr/local/bin/
+ExecStart=/usr/local/bin/autostart.sh
+RemainAfterExit=yes
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
+(2)Startup shell script
+
+#Next, we create our custom shell script to be executed during systemd startup. 
+#The location and script name is already defined by service unit as /usr/local/bin/autostart.sh. The content of the script can be simple as:
+#Creating a autostart service File
+ sudo nano /usr/local/bin/autostart.sh
+ 
+(Write under) 
+#!/bin/bash
+export DISPLAY=:1 && ~/Desktop/OtohitsApp/./OtohitsApp | ~/Desktop/kilohits.com-viewer-linux-x64/./kilohits.com-viewer | (~/Desktop/app/./HitLeap-Viewer && wait)
+ 
+#Or 
+ 
+#!/bin/sh
+export DISPLAY=:1 && ~/Desktop/OtohitsApp/./OtohitsApp | ~/Desktop/kilohits.com-viewer-linux-x64/./kilohits.com-viewer | (~/Desktop/app/./HitLeap-Viewer && wait)
+  
+(3)Configure and Install
+
+#Before we reboot our system we need to make our script executable:
+ chmod 744 /usr/local/bin/autostart.sh
+
+#Next, install systemd service unit and enable it so it will be executed at the boot time:
+ chmod 664 /etc/systemd/system/autostart.service
+ systemctl daemon-reload
+ systemctl enable autostart.service
+ 
+#If you wish to test your script before you reboot run:
+ systemctl start autostart.service
+
