@@ -1,0 +1,217 @@
+Run unlimited hitleap and kilohits viewer on ubuntu VPS
+------------------------------------------------------------------------------------
+#PREPARE VNC Server with multiple users 
+#Add users
+ sudo adduser honeycomb01
+ sudo usermod -aG sudo honeycomb01
+ su honeycomb01
+#install necessary stuff for desktop
+ sudo apt install gnome-core xfce4 xfce4-goodies tightvncserver autocutsel -y
+ vncserver :2
+ vncserver -kill :2
+ mv ~/.vnc/xstartup ~/.vnc/xstartup.backup
+ nano ~/.vnc/xstartup
+#and add
+(Write under)
+#!/bin/bash
+[ -r $HOME/.Xresources ] && xrdb $HOME/.Xresources
+autocutsel -fork
+startxfce4 &
+
+(End)
+#make it executable:  
+ sudo chmod +x ~/.vnc/xstartup
+ vncserver :2
+
+#Add another users, creat honeycomb02 user, similary when create honeycomb01 step above
+
+#So, switch to root (it is just more easier) and then create vncserver folder and create file as vncservers.conf:
+ sudo su -
+ mkdir -p /etc/vncserver
+ nano /etc/vncserver/vncservers.conf
+
+#Inside put the following massive:
+ VNCSERVERS="1:root 2:honeycomb01 3:honeycomb02"
+ VNCSERVERARGS[1]="-geometry 1024x768 -depth 24"
+ VNCSERVERARGS[2]="-geometry 1024x768 -depth 24"
+ VNCSERVERARGS[3]="-geometry 1024x768 -depth 24"
+ 
+#Create vnc service file
+ sudo nano /etc/init.d/vncserver
+(Write under)
+#!/bin/bash
+unset VNCSERVERARGS
+VNCSERVERS=""
+[ -f /etc/vncserver/vncservers.conf ] && . /etc/vncserver/vncservers.conf
+prog=$"VNC server"
+start() {
+        . /lib/lsb/init-functions
+        REQ_USER=$2
+        echo -n $"Starting $prog: "
+        ulimit -S -c 0 >/dev/null 2>&1
+        RETVAL=0
+        for display in ${VNCSERVERS}
+        do
+                export USER="${display##*:}"
+                if test -z "${REQ_USER}" -o "${REQ_USER}" == ${USER} ; then
+                        echo -n "${display} "
+                        unset BASH_ENV ENV
+                        DISP="${display%%:*}"
+                        export VNCUSERARGS="${VNCSERVERARGS[${DISP}]}"
+                        su ${USER} -c "cd ~${USER} && [ -f .vnc/passwd ] && vncserver :${DISP} ${VNCUSERARGS}"
+                fi
+        done
+}
+stop() {
+        . /lib/lsb/init-functions
+        REQ_USER=$2
+        echo -n $"Shutting down VNCServer: "
+        for display in ${VNCSERVERS}
+        do
+                export USER="${display##*:}"
+                if test -z "${REQ_USER}" -o "${REQ_USER}" == ${USER} ; then
+                        echo -n "${display} "
+                        unset BASH_ENV ENV
+                        export USER="${display##*:}"
+                        su ${USER} -c "vncserver -kill :${display%%:*}" >/dev/null 2>&1
+                fi
+        done
+        echo -e "\n"
+        echo "VNCServer Stopped"
+}
+case "$1" in
+start)
+start $@
+;;
+stop)
+stop $@
+;;
+restart|reload)
+stop $@
+sleep 3
+start $@
+;;
+condrestart)
+if [ -f /var/lock/subsys/vncserver ]; then
+stop $@
+sleep 3
+start $@
+fi
+;;
+status)
+status Xvnc
+;;
+*)
+echo $"Usage: $0 {start|stop|restart|condrestart|status}"
+exit 1
+esac
+
+(End)
+
+#Make the script executable, and add it to the startup scripts:
+ chmod +x /etc/init.d/vncserver
+ update-rc.d vncserver defaults 99
+#Start the service
+ systemctl daemon-reload
+ service vncserver stop
+ service vncserver start
+#/etc/init.d/vncserver start 
+#Check that its running
+ service vncserver status
+ cat ~/.vnc/*.pid
+ ps -ef | grep tightvnc
+ netstat -nlp | grep vnc
+
+#We must seperate all linux users' TMP directories. That is the problem why traffic exchange viewers don't run multiple.
+#STEP 1 : Seperating tmp directories for each user
+#Press CTRL ALT T and open terminal screen
+#type this on terminal screen:
+ sudo nano /etc/profile
+#and add these lines:
+(Write under)
+if [[ -O /home/$USER/tmp && -d /home/$USER/tmp ]]; then
+TMPDIR=/home/$USER/tmp
+else
+# You may wish to remove this line, it is there in case
+# a user has put a file ‘tmp’ in there directory or a
+rm -rf /home/$USER/tmp 2> /dev/null
+mkdir -p /home/$USER/tmp
+TMPDIR=$(mktemp -d /home/$USER/tmp/XXXX)
+fi
+
+TMP=$TMPDIR
+TEMP=$TMPDIR
+
+export TMPDIR TMP TEMP
+
+(End)
+#type reboot on your terminal screen to restart your system with new settings
+ reboot
+#We are ready to run multiple traffic exchange viewers but we need proxy settings to each viewers now. We will install the proxychains for this
+
+#STEP 2: Installing proxychains
+#Press CTRL ALT T and open terminal screen
+#Install proxychains-ng
+#Type these commands one by one for add proxychains-ng repository
+#sudo add-apt-repository ppa:hda-me/proxychains-ng
+#sudo apt-get update
+ cd /home
+#or cd /srv 
+ git clone https://github.com/rofl0r/proxychains-ng.git
+ cd proxychains-ng
+ ./configure --prefix=/usr --sysconfdir=/etc
+ make && make install
+ sudo make install-config
+#Install Parallel
+ wget ftp://ftp.gnu.org/gnu/parallel/parallel-latest.tar.bz2
+ tar -jxvf parallel-latest.tar.bz2
+ cd parallel-<latest-copy>/
+ ./configure && make
+ sudo make install
+
+#STEP 3: Configuring proxychains and proxies
+#We will define each proxy on each other configuration file, create each proxy for another configuration file 
+#just change it proxychains57 to proxychains58, proxychains59 or whatever you want and create your proxy configuration files
+ cp /etc/proxychains.conf /etc/honeycomb01.conf
+#or by manual: sudo touch /etc/honeycomb01.conf
+#You need to define another conf file for each proxy. It is easy. Type this command for edit configuration file:
+ sudo nano /etc/honeycomb01.conf
+#Delete everthing on conf file and add these lines or edit your conf file like this:
+(Write under)
+dynamic_chain
+tcp_read_time_out 15000
+tcp_connect_time_out 8000
+[ProxyList] http IP_NUMBER PORT_NUMBER USER_NAME PASSWORD
+
+(End)
+#ex: http 116.48.136.128 8080
+#STEP 4: Installiing traffic viewers
+#Open firefox and login to your kilohits account. Click viewer and click linux viewer to download it. After download finished extract it.
+#STEP 5: Running viewer with proxychains
+#Type this command on the terminal screen to run first viewer
+ export DISPLAY=:2 && proxychains4 -f /etc/proxychains57.conf /home/USER_NAME/Downloads/PATH_TO_VIEWER/VIEWER_NAME
+#ex: export DISPLAY=:2 && proxychains4 -f /etc/honeycomb01.conf /home/honeycomb01/Downloads/kilohit/kilohits.com-viewer
+ proxychains -f /etc/honeycomb01.conf /home/honeycomb01/Downloads/kilohit/kilohits.com-viewer
+#-f /etc /etc/proxychains57.conf line means you are running viewer with this proxy settings. 
+#You can change this and run multiple viewers with each proxy settings. Dont run another instance on the same user for same viewer, 
+#it will use same proxy. Create another user and change proxy conf settings and run the viewer.
+
+#STEP 6: Run multiple viewers
+#Create another user on ubuntu
+#Switch to new user
+#Download or copy viewer to this users home directory or whereever you want
+#Change proxy configuration file on the command line proxychains4 and run another viewer, like this:
+export DISPLAY=:2 && proxychains4 -f /etc/proxychains57.conf /home/USER_NAME/Downloads/PATH_TO_VIEWER/VIEWER_NAME
+export DISPLAY=:2 && proxychains4 -f /etc/proxychainsme.conf /home/USER_NAME/Downloads/PATH_TO_VIEWER/VIEWER_NAME
+export DISPLAY=:2 && proxychains4 -f /etc/anotherconf.conf /home/USER_NAME/Downloads/PATH_TO_VIEWER/VIEWER_NAME
+
+#ProxyList
+ cd ~/
+ git clone https://github.com/FulbrightNguyen/dragonball.git
+ cd dragonball
+ ./proxy_scraper.sh
+
+
+
+
+#inux -> cpulimit -> "sudo apt-get install cpulimit " then "cpulimit -p PID -l 10 -v" -> this means limit this pid to 10% if cpu. You can also just use paths or names like "cpulimit -e firefox -l 10 -v".

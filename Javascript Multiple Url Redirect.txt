@@ -1,0 +1,31 @@
+<script>
+// The list of urls you wish to redirect
+// One per line. Comma after each one
+//EXCEPT the last url in the list
+var URLlist = [
+"http://adpays.net/v.php?user=9627",
+"http://mediacpm.pl/v.php?user=12698",
+"http://like-ads.com/link.php?id=nnquangminh",
+"http://promo-earn.com/promote.php?id=nnquangminh",
+"http://www.adsptp.com/?id=44472",
+"http://ptp.skillerzforum.com/promote.php?id=28512"
+];
+
+// Amount of time or delay before the redirect.
+// 0000 mean no delay whatsoever.
+// Change to 1000 for one second delay,
+// 2000 for two second delay, etc.
+var reDelay = 10000;
+
+//The code that randomly selects one of the urls
+// from the list above and causes the redirect
+setTimeout(function(){window.location = URLlist[Math.floor(Math.random() * URLlist.length)];}, reDelay);
+</script>
+
+Where to Place Javascript Multiple Url Redirect
+You modify the list of urls to as few as two to as many urls as you wish. Make sure each url is on a separate line with a comma after each url except 
+the last one in the list.
+
+After changing the urls in the list to your needs, copy and paste all of the code from the textbox above and place it anywhere in the web page between 
+the <head> and </head> of the web page. If you use Wordpress you will want to install a plug in that allows you to insert javascript in individual posts. 
+header.php) of a single post

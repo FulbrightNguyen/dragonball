@@ -1,0 +1,17 @@
+<?php
+
+// The list of urls you wish to redirect. One per line. 
+$destlink1 = 'http://AnyURLorAffiliateLinkHere.com/example1';
+$destlink2 = 'http://AnyURLorAffiliateLinkHere.com/example2';
+$destlink3 = 'http://AnyURLorAffiliateLinkHere.com/example3';
+$destlink4 = 'http://AnyURLorAffiliateLinkHere.com/example4';
+
+$randNum = rand(1 , 4); // Change the second number, 4, to the total number of links you have above
+
+// Adjust the code below to the total number of links you have.
+if ($randNum == 1){header("Location: $destlink1");}
+elseif ($randNum == 2){header("Location: $destlink2");}
+elseif ($randNum == 3){header("Location: $destlink3");}
+else {header("Location: $destlink4");}
+exit();
+?>
